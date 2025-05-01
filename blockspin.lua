@@ -1,82 +1,146 @@
--- Otimizador Gráfico
-for _, v in pairs(workspace:GetDescendants()) do
-    if v:IsA("Texture") or v:IsA("Decal") then
-        v:Destroy()
-    end
-end
-sethiddenproperty(game.Lighting, "Technology", Enum.Technology.Compatibility)
+-- Criação da GUI
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "BlockSpinMenu"
 
--- Configurações
-local farmMode = "ATM" -- mude para "Steak" se quiser farmar na steak house
-local speed = 100 -- velocidade do jogador
-local autoBuyPlacas = true
-local autoBuyFrigideiras = true
+-- Frame principal
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 200, 0, 300)
+mainFrame.Position = UDim2.new(0, 10, 0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
--- Anti-Ban básico
-pcall(function()
-    game:GetService("Players").LocalPlayer.Name = "Player_" .. math.random(100000,999999)
+-- Título
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "BlockSpin Menu"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+
+-- Botão Auto Farm
+local autoFarmButton = Instance.new("TextButton", mainFrame)
+autoFarmButton.Position = UDim2.new(0, 10, 0, 50)
+autoFarmButton.Size = UDim2.new(0, 180, 0, 30)
+autoFarmButton.Text = "Auto Farm: OFF"
+autoFarmButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+autoFarmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local autoFarmEnabled = false
+
+autoFarmButton.MouseButton1Click:Connect(function()
+    autoFarmEnabled = not autoFarmEnabled
+    autoFarmButton.Text = "Auto Farm: " .. (autoFarmEnabled and "ON" or "OFF")
+    -- Aqui você pode adicionar a lógica para ativar/desativar o Auto Farm
 end)
 
--- Velocidade
-game:GetService("RunService").Stepped:Connect(function()
-    pcall(function()
+-- Botão Modo de Farm (ATM ou Steak)
+local farmModeButton = Instance.new("TextButton", mainFrame)
+farmModeButton.Position = UDim2.new(0, 10, 0, 90)
+farmModeButton.Size = UDim2.new(0, 180, 0, 30)
+farmModeButton.Text = "Farm Mode: ATM"
+farmModeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+farmModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local farmMode = "ATM"
+
+farmModeButton.MouseButton1Click:Connect(function()
+    farmMode = (farmMode == "ATM") and "Steak" or "ATM"
+    farmModeButton.Text = "Farm Mode: " .. farmMode
+    -- Aqui você pode adicionar a lógica para mudar o modo de farm
+end)
+
+-- Slider de Velocidade
+local speedSlider = Instance.new("TextBox", mainFrame)
+speedSlider.Position = UDim2.new(0, 10, 0, 130)
+speedSlider.Size = UDim2.new(0, 180, 0, 30)
+speedSlider.PlaceholderText = "Speed: 50"
+speedSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+speedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+speedSlider.FocusLost:Connect(function()
+    local speed = tonumber(speedSlider.Text)
+    if speed and speed > 0 then
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = speed
-    end)
-end)
-
--- Anti-Morte
-game:GetService("RunService").Heartbeat:Connect(function()
-    local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
-    if humanoid and humanoid.Health < 30 then
-        humanoid.Health = 100
-        game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(0,100,0)) -- TP de emergência
+    else
+        speedSlider.Text = "50"
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 50
     end
 end)
 
--- Auto Farm
-spawn(function()
-    while true do
-        wait(1)
-        if farmMode == "ATM" then
-            -- Farm ATM
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name == "ATM" and v:FindFirstChild("ProximityPrompt") then
-                    fireproximityprompt(v.ProximityPrompt)
-                end
+-- Botão Anti-Morte
+local antiDeathButton = Instance.new("TextButton", mainFrame)
+antiDeathButton.Position = UDim2.new(0, 10, 0, 170)
+antiDeathButton.Size = UDim2.new(0, 180, 0, 30)
+antiDeathButton.Text = "Anti Death: OFF"
+antiDeathButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+antiDeathButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local antiDeathEnabled = false
+
+antiDeathButton.MouseButton1Click:Connect(function()
+    antiDeathEnabled = not antiDeathEnabled
+    antiDeathButton.Text = "Anti Death: " .. (antiDeathEnabled and "ON" or "OFF")
+    -- Lógica de Anti-Morte
+    if antiDeathEnabled then
+        game:GetService("RunService").Heartbeat:Connect(function()
+            local humanoid = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health < 30 then
+                humanoid.Health = 100
+                game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(0, 100, 0)) -- TP de emergência
             end
-        elseif farmMode == "Steak" then
-            -- Farm Steak House
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name == "SteakGrill" and v:FindFirstChild("ProximityPrompt") then
-                    fireproximityprompt(v.ProximityPrompt)
-                end
-            end
-        end
+        end)
     end
 end)
 
--- Compra Automática de Placas para ATM
-if autoBuyPlacas then
-    spawn(function()
-        while true do
-            wait(10)
-            local event = game:GetService("ReplicatedStorage"):FindFirstChild("BuyPlate")
-            if event then
-                event:FireServer()
-            end
-        end
-    end)
-end
+-- Botão Compra Automática de Frigideiras
+local autoBuyFriesButton = Instance.new("TextButton", mainFrame)
+autoBuyFriesButton.Position = UDim2.new(0, 10, 0, 210)
+autoBuyFriesButton.Size = UDim2.new(0, 180, 0, 30)
+autoBuyFriesButton.Text = "Auto Buy Frying Pan: OFF"
+autoBuyFriesButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+autoBuyFriesButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- Compra remota de frigideiras
-if autoBuyFrigideiras then
-    spawn(function()
-        while true do
-            wait(15)
-            local shop = game:GetService("ReplicatedStorage"):FindFirstChild("BuyItem")
-            if shop then
-                shop:FireServer("FryingPan")
+local autoBuyFriesEnabled = false
+
+autoBuyFriesButton.MouseButton1Click:Connect(function()
+    autoBuyFriesEnabled = not autoBuyFriesEnabled
+    autoBuyFriesButton.Text = "Auto Buy Frying Pan: " .. (autoBuyFriesEnabled and "ON" or "OFF")
+    -- Lógica de Compra Automática de Frigideiras
+    if autoBuyFriesEnabled then
+        spawn(function()
+            while true do
+                wait(10)
+                local shop = game:GetService("ReplicatedStorage"):FindFirstChild("BuyItem")
+                if shop then
+                    shop:FireServer("FryingPan")
+                end
             end
-        end
-    end)
-end
+        end)
+    end
+end)
+
+-- Botão Compra Automática de Placas para ATM
+local autoBuyPlatesButton = Instance.new("TextButton", mainFrame)
+autoBuyPlatesButton.Position = UDim2.new(0, 10, 0, 250)
+autoBuyPlatesButton.Size = UDim2.new(0, 180, 0, 30)
+autoBuyPlatesButton.Text = "Auto Buy Plates: OFF"
+autoBuyPlatesButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+autoBuyPlatesButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local autoBuyPlatesEnabled = false
+
+autoBuyPlatesButton.MouseButton1Click:Connect(function()
+    autoBuyPlatesEnabled = not autoBuyPlatesEnabled
+    autoBuyPlatesButton.Text = "Auto Buy Plates: " .. (autoBuyPlatesEnabled and "ON" or "OFF")
+    -- Lógica de Compra Automática de Placas para ATM
+    if autoBuyPlatesEnabled then
+        spawn(function()
+            while true do
+                wait(10)
+                local event = game:GetService("ReplicatedStorage"):FindFirstChild("BuyPlate")
+                if event then
+                    event:FireServer()
+                end
+            end
+        end)
+    end
+end)
